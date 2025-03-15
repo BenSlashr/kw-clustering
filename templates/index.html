@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clustering de Mots-clés</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">Keyword Clustering Tool</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" data-tab="form-tab">Formulaire</div>
+            <div class="tab" data-tab="preview-tab">Aperçu</div>
+            <div class="tab" data-tab="help-tab">Aide</div>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <!-- Form Tab -->
+        <div id="form-tab" class="tab-content active">
+            <div class="card">
+                <h2 class="card-title">Clustering de Mots-clés avec OpenAI</h2>
+                <form id="clustering-form">
+                    <div class="form-group">
+                        <label for="keywords-file">Fichier CSV des mots-clés</label>
+                        <div class="file-input-container">
+                            <label class="file-input-label">
+                                Choisir un fichier
+                                <input type="file" id="keywords-file" class="file-input" accept=".csv">
+                            </label>
+                            <div id="keywords-filename" class="file-name">Aucun fichier choisi</div>
+                        </div>
+                        <small>Le fichier doit contenir une colonne avec les mots-clés</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="urls-file">Fichier CSV des URLs</label>
+                        <div class="file-input-container">
+                            <label class="file-input-label">
+                                Choisir un fichier
+                                <input type="file" id="urls-file" class="file-input" accept=".csv">
+                            </label>
+                            <div id="urls-filename" class="file-name">Aucun fichier choisi</div>
+                        </div>
+                        <small>Le fichier doit contenir deux colonnes : URL et contenu</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="api-key">Clé API OpenAI</label>
+                        <input type="password" id="api-key" placeholder="sk-...">
+                        <div style="margin-top: 0.5rem;">
+                            <input type="checkbox" id="save-api-key">
+                            <label for="save-api-key" style="display: inline;">Enregistrer la clé API localement</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="algorithm">Algorithme de clustering</label>
+                        <select id="algorithm">
+                            <option value="kmeans">KMeans</option>
+                            <option value="dbscan">DBSCAN</option>
+                        </select>
+                    </div>
+
+                    <div id="kmeans-params" class="form-group">
+                        <label for="n-clusters">Nombre de clusters (optionnel)</label>
+                        <input type="number" id="n-clusters" min="2" placeholder="Auto-détection si vide">
+                        <small>Laissez vide pour une détection automatique du nombre optimal de clusters</small>
+                    </div>
+
+                    <div id="dbscan-params" class="form-group hidden">
+                        <div class="form-group">
+                            <label for="eps">Epsilon (optionnel)</label>
+                            <input type="number" id="eps" min="0.1" step="0.1" placeholder="0.5 par défaut">
+                        </div>
+                        <div class="form-group">
+                            <label for="min-samples">Échantillons minimum (optionnel)</label>
+                            <input type="number" id="min-samples" min="2" placeholder="5 par défaut">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn">Lancer le clustering</button>
+                        <button type="button" id="reset-btn" class="btn btn-secondary" style="margin-left: 10px;">Réinitialiser</button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="loading-indicator" class="card hidden">
+                <div style="text-align: center;">
+                    <div class="spinner"></div>
+                    <span class="loading-text">Traitement en cours... Cela peut prendre quelques minutes.</span>
+                </div>
+            </div>
+
+            <div id="result-section" class="card hidden">
+                <h2 class="card-title">Résultats du clustering</h2>
+                <p>Le clustering a été effectué avec succès. Vous pouvez télécharger les résultats ci-dessous.</p>
+                <div class="result-actions">
+                    <a id="download-btn" class="btn btn-success">Télécharger les résultats (CSV)</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Tab -->
+        <div id="preview-tab" class="tab-content">
+            <div id="preview-container" class="card hidden">
+                <h2 id="preview-title" class="card-title">Aperçu</h2>
+                <div style="overflow-x: auto;">
+                    <table id="preview-table" class="table">
+                        <thead id="preview-header"></thead>
+                        <tbody id="preview-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Tab -->
+        <div id="help-tab" class="tab-content">
+            <div class="card">
+                <h2 class="card-title">Aide</h2>
+                
+                <h3>Format des fichiers</h3>
+                <p><strong>Fichier CSV des mots-clés :</strong></p>
+                <p>Le fichier doit contenir une colonne avec les mots-clés. Exemple :</p>
+                <pre>mot-clé
+référencement naturel
+SEO
+optimisation moteur de recherche</pre>
+
+                <p><strong>Fichier CSV des URLs :</strong></p>
+                <p>Le fichier doit contenir deux colonnes : URL et contenu. Exemple :</p>
+                <pre>url,contenu
+https://example.com/seo,Contenu sur le référencement naturel et l'optimisation pour les moteurs de recherche
+https://example.com/social,Contenu sur les réseaux sociaux et le marketing digital</pre>
+
+                <h3>Algorithmes de clustering</h3>
+                <p><strong>KMeans :</strong> Divise les mots-clés en un nombre spécifique de clusters. Si vous ne spécifiez pas le nombre de clusters, l'algorithme tentera de déterminer le nombre optimal.</p>
+                <p><strong>DBSCAN :</strong> Regroupe les mots-clés en fonction de leur densité dans l'espace vectoriel. Les paramètres epsilon et échantillons minimum contrôlent la sensibilité du clustering.</p>
+
+                <h3>Résultats</h3>
+                <p>Le fichier CSV de sortie contient :</p>
+                <ul>
+                    <li>Colonne A : Mot-clé</li>
+                    <li>Colonne B : Cluster</li>
+                    <li>Colonne C : URL associée</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>Keyword Clustering Tool &copy; 2025</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

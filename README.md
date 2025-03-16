@@ -7,7 +7,10 @@ Un outil de clustering de mots-clés basé sur OpenAI qui associe des clusters �
 Cette API FastAPI permet de :
 - Clusteriser une liste de mots-clés en groupes sémantiques
 - Associer chaque cluster à l'URL la plus pertinente
-- Générer un fichier CSV avec les résultats
+- Classifier les URLs par typologie de pages (optionnel)
+- Filtrer les résultats par cluster, URL, typologie de page et score de similarité
+- Télécharger les résultats filtrés au format CSV
+- Générer un fichier CSV avec les résultats complets
 
 ## Prérequis
 
@@ -73,22 +76,27 @@ Accédez à l'interface Swagger UI à l'adresse : http://localhost:8000/docs
 2. **Fichier CSV des URLs** :
    - Première colonne : URL
    - Deuxième colonne : Contenu de la page
+   - Troisième colonne (optionnelle) : Type de page (typologie)
    - Séparateurs acceptés : virgule (,) ou point-virgule (;)
 
    Exemple avec virgule :
    ```
-   url,contenu
-   https://example.com/seo,Contenu sur le référencement naturel et l'optimisation pour les moteurs de recherche
-   https://example.com/social,Contenu sur les réseaux sociaux et le marketing digital
+   url,contenu,typologie
+   https://example.com/seo,Contenu sur le référencement naturel et l'optimisation pour les moteurs de recherche,blog
+   https://example.com/social,Contenu sur les réseaux sociaux et le marketing digital,blog
+   https://example.com/produit,Description d'un produit spécifique,produit
+   https://example.com/categorie,Liste de produits d'une catégorie,catégorie
    ```
    
    Exemple avec point-virgule :
    ```
-   url;contenu
-   https://example.com/seo;Contenu sur le référencement naturel et l'optimisation pour les moteurs de recherche
-   https://example.com/social;Contenu sur les réseaux sociaux et le marketing digital
+   url;contenu;typologie
+   https://example.com/seo;Contenu sur le référencement naturel et l'optimisation pour les moteurs de recherche;blog
+   https://example.com/social;Contenu sur les réseaux sociaux et le marketing digital;blog
+   https://example.com/produit;Description d'un produit spécifique;produit
+   https://example.com/categorie;Liste de produits d'une catégorie;catégorie
    ```
-
+   
 ### Paramètres de l'API
 
 - **keywords_file** : Fichier CSV contenant les mots-clés
@@ -127,6 +135,36 @@ L'outil propose désormais deux méthodes pour générer les embeddings :
    - Inconvénients : Peut être plus lent sur des machines avec peu de ressources, qualité d'embedding potentiellement inférieure à OpenAI
 
 Choisissez la méthode qui convient le mieux à vos besoins en fonction de vos contraintes (connexion internet, budget, performances requises).
+
+## Interface utilisateur
+
+L'application dispose d'une interface utilisateur intuitive accessible à l'adresse http://localhost:8000 qui permet de :
+
+1. **Télécharger les fichiers d'entrée** :
+   - Fichier CSV des mots-clés
+   - Fichier CSV des URLs avec leur contenu et typologie (optionnelle)
+
+2. **Configurer les paramètres** :
+   - Méthode d'embedding (OpenAI ou Sentence Transformers)
+   - Algorithme de clustering (KMeans ou DBSCAN)
+   - Paramètres spécifiques à l'algorithme choisi
+
+3. **Visualiser les résultats** :
+   - Aperçu des clusters de mots-clés
+   - URLs associées à chaque cluster
+   - Scores de similarité
+   - Types de pages (si spécifiés)
+
+4. **Filtrer les résultats** :
+   - Par cluster
+   - Par URL
+   - Par type de page
+   - Par score de similarité minimum
+
+5. **Télécharger les résultats** :
+   - Téléchargement des résultats complets
+   - Téléchargement des résultats filtrés
+   - Format CSV pour une analyse ultérieure
 
 ## Exemples d'utilisation
 
@@ -170,10 +208,12 @@ with open('results.csv', 'wb') as f:
 
 ## Fonctionnement technique
 
-1. **Génération d'embeddings** : Les mots-clés et le contenu des pages sont convertis en vecteurs numériques via l'API OpenAI
+1. **Génération d'embeddings** : Les mots-clés et le contenu des pages sont convertis en vecteurs numériques via l'API OpenAI ou Sentence Transformers
 2. **Clustering** : Les mots-clés sont regroupés en utilisant KMeans ou DBSCAN en fonction de la similarité de leurs embeddings
-3. **Association aux URLs** : Pour chaque cluster, l'API trouve l'URL dont le contenu a l'embedding le plus proche du centroïde du cluster
-4. **Génération du résultat** : Un fichier CSV est créé avec les mots-clés, leur cluster et l'URL associée
+3. **Classification par typologie** : Les URLs sont classifiées selon leur typologie de page (si spécifiée dans le fichier d'entrée)
+4. **Association aux URLs** : Pour chaque cluster, l'API trouve les URLs les plus pertinentes dont le contenu a l'embedding le plus proche du centroïde du cluster
+5. **Filtrage des résultats** : Possibilité de filtrer les résultats par cluster, URL, typologie de page et score de similarité
+6. **Génération du résultat** : Un fichier CSV est créé avec les mots-clés, leur cluster, les URLs associées, les scores de similarité et les typologies de pages
 
 ## Licence
 

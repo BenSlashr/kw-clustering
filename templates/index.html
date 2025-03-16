@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clustering de Mots-clés</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -17,6 +18,7 @@
         <div class="tabs">
             <div class="tab active" data-tab="form-tab">Formulaire</div>
             <div class="tab" data-tab="preview-tab">Aperçu</div>
+            <div class="tab" data-tab="logs-tab">Logs</div>
             <div class="tab" data-tab="help-tab">Aide</div>
         </div>
 
@@ -25,81 +27,87 @@
         <!-- Form Tab -->
         <div id="form-tab" class="tab-content active">
             <div class="card">
-                <h2 class="card-title">Clustering de Mots-clés avec OpenAI</h2>
+                <h2 class="card-title">Clustering de Mots-clés</h2>
                 <form id="clustering-form">
-                    <div class="form-group">
-                        <label for="keywords-file">Fichier CSV des mots-clés</label>
-                        <div class="file-input-container">
-                            <label class="file-input-label">
-                                Choisir un fichier
-                                <input type="file" id="keywords-file" class="file-input" accept=".csv">
-                            </label>
-                            <div id="keywords-filename" class="file-name">Aucun fichier choisi</div>
+                    <div class="form-columns">
+                        <div class="form-column">
+                            <div class="form-group">
+                                <label for="keywords-file">Fichier CSV des mots-clés</label>
+                                <div class="file-input-container">
+                                    <label class="file-input-label">
+                                        Choisir un fichier
+                                        <input type="file" id="keywords-file" class="file-input" accept=".csv">
+                                    </label>
+                                    <div id="keywords-filename" class="file-name">Aucun fichier choisi</div>
+                                </div>
+                                <small>Le fichier doit contenir une colonne avec les mots-clés</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="urls-file">Fichier CSV des URLs</label>
+                                <div class="file-input-container">
+                                    <label class="file-input-label">
+                                        Choisir un fichier
+                                        <input type="file" id="urls-file" class="file-input" accept=".csv">
+                                    </label>
+                                    <div id="urls-filename" class="file-name">Aucun fichier choisi</div>
+                                </div>
+                                <small>Le fichier doit contenir deux colonnes obligatoires (URL, contenu) et une colonne optionnelle (typologie)</small>
+                            </div>
                         </div>
-                        <small>Le fichier doit contenir une colonne avec les mots-clés</small>
-                    </div>
 
-                    <div class="form-group">
-                        <label for="urls-file">Fichier CSV des URLs</label>
-                        <div class="file-input-container">
-                            <label class="file-input-label">
-                                Choisir un fichier
-                                <input type="file" id="urls-file" class="file-input" accept=".csv">
-                            </label>
-                            <div id="urls-filename" class="file-name">Aucun fichier choisi</div>
-                        </div>
-                        <small>Le fichier doit contenir deux colonnes : URL et contenu</small>
-                    </div>
+                        <div class="form-column">
+                            <div class="form-group">
+                                <label for="embedding-method">Méthode d'embedding</label>
+                                <select id="embedding-method">
+                                    <option value="openai">OpenAI</option>
+                                    <option value="sentence-transformers">Sentence Transformers (local)</option>
+                                </select>
+                            </div>
 
-                    <div class="form-group">
-                        <label for="embedding-method">Méthode d'embedding</label>
-                        <select id="embedding-method">
-                            <option value="openai">OpenAI</option>
-                            <option value="sentence-transformers">Sentence Transformers (local)</option>
-                        </select>
-                    </div>
+                            <div id="openai-params" class="form-group">
+                                <label for="api-key">Clé API OpenAI</label>
+                                <input type="password" id="api-key" placeholder="sk-...">
+                                <div style="margin-top: 0.5rem;">
+                                    <input type="checkbox" id="save-api-key">
+                                    <label for="save-api-key" style="display: inline;">Enregistrer la clé API localement</label>
+                                </div>
+                            </div>
 
-                    <div id="openai-params" class="form-group">
-                        <label for="api-key">Clé API OpenAI</label>
-                        <input type="password" id="api-key" placeholder="sk-...">
-                        <div style="margin-top: 0.5rem;">
-                            <input type="checkbox" id="save-api-key">
-                            <label for="save-api-key" style="display: inline;">Enregistrer la clé API localement</label>
-                        </div>
-                    </div>
+                            <div id="st-params" class="form-group hidden">
+                                <label for="st-model">Modèle Sentence Transformers</label>
+                                <select id="st-model">
+                                    <option value="all-MiniLM-L6-v2">all-MiniLM-L6-v2 (rapide, léger)</option>
+                                    <option value="all-mpnet-base-v2">all-mpnet-base-v2 (plus précis)</option>
+                                    <option value="paraphrase-multilingual-MiniLM-L12-v2">paraphrase-multilingual-MiniLM-L12-v2 (multilingue)</option>
+                                </select>
+                                <small>Le modèle sera téléchargé automatiquement lors de la première utilisation</small>
+                            </div>
 
-                    <div id="st-params" class="form-group hidden">
-                        <label for="st-model">Modèle Sentence Transformers</label>
-                        <select id="st-model">
-                            <option value="all-MiniLM-L6-v2">all-MiniLM-L6-v2 (rapide, léger)</option>
-                            <option value="all-mpnet-base-v2">all-mpnet-base-v2 (plus précis)</option>
-                            <option value="paraphrase-multilingual-MiniLM-L12-v2">paraphrase-multilingual-MiniLM-L12-v2 (multilingue)</option>
-                        </select>
-                        <small>Le modèle sera téléchargé automatiquement lors de la première utilisation</small>
-                    </div>
+                            <div class="form-group">
+                                <label for="algorithm">Algorithme de clustering</label>
+                                <select id="algorithm">
+                                    <option value="kmeans">KMeans</option>
+                                    <option value="dbscan">DBSCAN</option>
+                                </select>
+                            </div>
 
-                    <div class="form-group">
-                        <label for="algorithm">Algorithme de clustering</label>
-                        <select id="algorithm">
-                            <option value="kmeans">KMeans</option>
-                            <option value="dbscan">DBSCAN</option>
-                        </select>
-                    </div>
+                            <div id="kmeans-params" class="form-group">
+                                <label for="n-clusters">Nombre de clusters (optionnel)</label>
+                                <input type="number" id="n-clusters" min="2" placeholder="Auto-détection si vide">
+                                <small>Laissez vide pour une détection automatique du nombre optimal de clusters</small>
+                            </div>
 
-                    <div id="kmeans-params" class="form-group">
-                        <label for="n-clusters">Nombre de clusters (optionnel)</label>
-                        <input type="number" id="n-clusters" min="2" placeholder="Auto-détection si vide">
-                        <small>Laissez vide pour une détection automatique du nombre optimal de clusters</small>
-                    </div>
-
-                    <div id="dbscan-params" class="form-group hidden">
-                        <div class="form-group">
-                            <label for="eps">Epsilon (optionnel)</label>
-                            <input type="number" id="eps" min="0.1" step="0.1" placeholder="0.5 par défaut">
-                        </div>
-                        <div class="form-group">
-                            <label for="min-samples">Échantillons minimum (optionnel)</label>
-                            <input type="number" id="min-samples" min="2" placeholder="5 par défaut">
+                            <div id="dbscan-params" class="form-group hidden">
+                                <div class="form-group">
+                                    <label for="eps">Epsilon (optionnel)</label>
+                                    <input type="number" id="eps" min="0.1" step="0.1" placeholder="0.5 par défaut">
+                                </div>
+                                <div class="form-group">
+                                    <label for="min-samples">Échantillons minimum (optionnel)</label>
+                                    <input type="number" id="min-samples" min="2" placeholder="5 par défaut">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -129,7 +137,43 @@
         <!-- Preview Tab -->
         <div id="preview-tab" class="tab-content">
             <div id="preview-container" class="card hidden">
-                <h2 id="preview-title" class="card-title">Aperçu</h2>
+                <h2 id="preview-title" class="card-title">Aperçu des résultats</h2>
+                
+                <!-- Filtres -->
+                <div class="filters-container">
+                    <h3>Filtres</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label for="cluster-filter">Filtrer par cluster</label>
+                            <select id="cluster-filter" class="form-control">
+                                <option value="">Tous les clusters</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label for="url-filter">Filtrer par URL</label>
+                            <select id="url-filter" class="form-control">
+                                <option value="">Toutes les URLs</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label for="page-type-filter">Filtrer par type de page</label>
+                            <select id="page-type-filter" class="form-control">
+                                <option value="">Tous les types</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label for="similarity-filter">Score de similarité minimum</label>
+                            <input type="range" id="similarity-filter" min="0" max="100" value="0" class="form-control">
+                            <span id="similarity-value">0%</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px;">
+                        <button id="apply-filters" class="btn">Appliquer les filtres</button>
+                        <button id="reset-filters" class="btn btn-secondary">Réinitialiser les filtres</button>
+                        <a id="download-filtered-btn" class="btn btn-success">Télécharger les résultats filtrés (CSV)</a>
+                    </div>
+                </div>
+                
                 <div style="overflow-x: auto;">
                     <table id="preview-table" class="table">
                         <thead id="preview-header"></thead>
@@ -139,45 +183,69 @@
             </div>
         </div>
 
+        <!-- Logs Tab -->
+        <div id="logs-tab" class="tab-content">
+            <div class="card">
+                <h2 class="card-title">Logs de débogage</h2>
+                <div class="form-group">
+                    <button type="button" id="refresh-logs-btn" class="btn btn-secondary">Rafraîchir les logs</button>
+                    <button type="button" id="clear-logs-btn" class="btn btn-secondary" style="margin-left: 10px;">Effacer les logs</button>
+                </div>
+                <div id="logs-container">
+                    <div id="logs-content"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Help Tab -->
         <div id="help-tab" class="tab-content">
             <div class="card">
                 <h2 class="card-title">Aide</h2>
-                
-                <h3>Format des fichiers</h3>
-                <p><strong>Fichier CSV des mots-clés :</strong></p>
-                <p>Le fichier doit contenir une colonne avec les mots-clés. Exemple :</p>
-                <pre>mot-clé
-référencement naturel
-SEO
-optimisation moteur de recherche</pre>
-                <p>Les séparateurs virgule (,) et point-virgule (;) sont tous deux acceptés.</p>
-
-                <p><strong>Fichier CSV des URLs :</strong></p>
-                <p>Le fichier doit contenir deux colonnes : URL et contenu. Exemple :</p>
-                <pre>url,contenu
-https://example.com/seo,Contenu sur le référencement naturel et l'optimisation pour les moteurs de recherche
-https://example.com/social,Contenu sur les réseaux sociaux et le marketing digital</pre>
-                <p>Ou avec un séparateur point-virgule :</p>
-                <pre>url;contenu
-https://example.com/seo;Contenu sur le référencement naturel et l'optimisation pour les moteurs de recherche
-https://example.com/social;Contenu sur les réseaux sociaux et le marketing digital</pre>
-
-                <h3>Méthodes d'Embedding</h3>
-                <p><strong>OpenAI :</strong> Utilise l'API OpenAI pour générer des embeddings de haute qualité. Nécessite une clé API.</p>
-                <p><strong>Sentence Transformers :</strong> Génère des embeddings localement sans nécessiter de clé API. Plusieurs modèles sont disponibles, avec différents compromis entre vitesse et précision.</p>
-
-                <h3>Algorithmes de clustering</h3>
-                <p><strong>KMeans :</strong> Divise les mots-clés en un nombre spécifique de clusters. Si vous ne spécifiez pas le nombre de clusters, l'algorithme tentera de déterminer le nombre optimal.</p>
-                <p><strong>DBSCAN :</strong> Regroupe les mots-clés en fonction de leur densité dans l'espace vectoriel. Les paramètres epsilon et échantillons minimum contrôlent la sensibilité du clustering.</p>
-
-                <h3>Résultats</h3>
-                <p>Le fichier CSV de sortie contient :</p>
-                <ul>
-                    <li>Colonne A : Mot-clé</li>
-                    <li>Colonne B : Cluster</li>
-                    <li>Colonne C : URL associée</li>
-                </ul>
+                <div class="help-section">
+                    <h3>Format des fichiers</h3>
+                    <p>L'application accepte deux fichiers CSV :</p>
+                    <ol>
+                        <li><strong>Fichier de mots-clés</strong> : Un fichier CSV avec une colonne contenant les mots-clés à regrouper.</li>
+                        <li><strong>Fichier d'URLs</strong> : Un fichier CSV avec deux ou trois colonnes :
+                            <ul>
+                                <li>URL</li>
+                                <li>Contenu de la page</li>
+                                <li>Type de page (optionnel) - Permet de classifier les URLs par typologie</li>
+                            </ul>
+                        </li>
+                    </ol>
+                    <p>Exemple de fichier de mots-clés :</p>
+                    <pre><code>mot-clé 1
+mot-clé 2
+mot-clé 3</code></pre>
+                    
+                    <p>Exemple de fichier d'URLs :</p>
+                    <pre><code>https://example.com/page1,Contenu de la page 1,produit
+https://example.com/page2,Contenu de la page 2,catégorie
+https://example.com/page3,Contenu de la page 3,blog</code></pre>
+                    
+                    <h3>Paramètres</h3>
+                    <p><strong>Méthode d'embedding :</strong></p>
+                    <ul>
+                        <li><strong>OpenAI</strong> : Utilise l'API OpenAI pour générer des embeddings. Nécessite une clé API.</li>
+                        <li><strong>Sentence Transformers</strong> : Utilise des modèles locaux pour générer des embeddings. Plus lent mais gratuit.</li>
+                    </ul>
+                    
+                    <p><strong>Algorithme de clustering :</strong></p>
+                    <ul>
+                        <li><strong>KMeans</strong> : Nécessite de spécifier le nombre de clusters souhaité.</li>
+                        <li><strong>DBSCAN</strong> : Regroupe les points en fonction de leur densité. Nécessite de spécifier epsilon et min_samples.</li>
+                    </ul>
+                    
+                    <h3>Classification par typologie de pages</h3>
+                    <p>La nouvelle fonctionnalité de classification par typologie de pages permet de :</p>
+                    <ul>
+                        <li>Associer chaque URL à un type de page spécifique (produit, catégorie, blog, etc.)</li>
+                        <li>Filtrer les résultats par type de page dans l'aperçu</li>
+                        <li>Télécharger les résultats filtrés par type de page</li>
+                    </ul>
+                    <p>Pour utiliser cette fonctionnalité, ajoutez simplement une troisième colonne dans votre fichier CSV d'URLs avec le type de page. Si cette colonne n'est pas présente, l'application fonctionnera normalement sans cette classification.</p>
+                </div>
             </div>
         </div>
     </div>

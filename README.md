@@ -60,8 +60,9 @@ Accédez à l'interface Swagger UI à l'adresse : http://localhost:8000/docs
 
 1. **Fichier CSV des mots-clés** :
    - Première colonne : liste des mots-clés
+   - Séparateurs acceptés : virgule (,) ou point-virgule (;)
 
-   Exemple :
+   Exemple avec virgule :
    ```
    mot-clé
    référencement naturel
@@ -72,12 +73,20 @@ Accédez à l'interface Swagger UI à l'adresse : http://localhost:8000/docs
 2. **Fichier CSV des URLs** :
    - Première colonne : URL
    - Deuxième colonne : Contenu de la page
+   - Séparateurs acceptés : virgule (,) ou point-virgule (;)
 
-   Exemple :
+   Exemple avec virgule :
    ```
    url,contenu
    https://example.com/seo,Contenu sur le référencement naturel et l'optimisation pour les moteurs de recherche
    https://example.com/social,Contenu sur les réseaux sociaux et le marketing digital
+   ```
+   
+   Exemple avec point-virgule :
+   ```
+   url;contenu
+   https://example.com/seo;Contenu sur le référencement naturel et l'optimisation pour les moteurs de recherche
+   https://example.com/social;Contenu sur les réseaux sociaux et le marketing digital
    ```
 
 ### Paramètres de l'API
@@ -96,6 +105,28 @@ Le fichier CSV de sortie contient :
 - Colonne A : Mot-clé
 - Colonne B : Cluster
 - Colonne C : URL associée
+
+## Méthodes d'Embedding
+
+L'outil propose désormais deux méthodes pour générer les embeddings :
+
+1. **OpenAI** :
+   - Utilise l'API OpenAI et le modèle `text-embedding-ada-002`
+   - Nécessite une clé API OpenAI
+   - Avantages : Très performant, embeddings de haute qualité
+   - Inconvénients : Nécessite une connexion internet et un compte OpenAI, coûts associés à l'utilisation de l'API
+
+2. **Sentence Transformers** (nouveau) :
+   - Utilise la bibliothèque Sentence Transformers pour générer des embeddings localement
+   - Ne nécessite pas de clé API
+   - Modèles disponibles :
+     - `all-MiniLM-L6-v2` : Modèle léger et rapide (par défaut)
+     - `all-mpnet-base-v2` : Modèle plus précis mais plus lent
+     - `paraphrase-multilingual-MiniLM-L12-v2` : Modèle multilingue
+   - Avantages : Fonctionne hors ligne, gratuit, pas de limite d'utilisation
+   - Inconvénients : Peut être plus lent sur des machines avec peu de ressources, qualité d'embedding potentiellement inférieure à OpenAI
+
+Choisissez la méthode qui convient le mieux à vos besoins en fonction de vos contraintes (connexion internet, budget, performances requises).
 
 ## Exemples d'utilisation
 

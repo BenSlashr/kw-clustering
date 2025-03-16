@@ -13,6 +13,7 @@ import tempfile
 import uuid
 import logging
 from dotenv import load_dotenv
+from sentence_transformers import SentenceTransformer
 
 # Load environment variables
 load_dotenv()
@@ -39,11 +40,22 @@ def get_openai_client(api_key):
     openai.api_key = api_key
     return openai
 
+# Initialize Sentence Transformer model
+def get_sentence_transformer(model_name="all-MiniLM-L6-v2"):
+    """Initialize a Sentence Transformer model"""
+    try:
+        logger.info(f"Loading Sentence Transformer model: {model_name}")
+        model = SentenceTransformer(model_name)
+        return model
+    except Exception as e:
+        logger.error(f"Error loading Sentence Transformer model: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error loading Sentence Transformer model: {str(e)}")
+
 # Function to generate embeddings using OpenAI
-def generate_embeddings(texts, openai_client):
+def generate_openai_embeddings(texts, openai_client):
     """Generate embeddings for a list of texts using OpenAI API"""
     try:
-        logger.info(f"Generating embeddings for {len(texts)} texts")
+        logger.info(f"Generating OpenAI embeddings for {len(texts)} texts")
         embeddings = []
         # Process in batches to avoid API limits
         batch_size = 100
@@ -57,8 +69,35 @@ def generate_embeddings(texts, openai_client):
             embeddings.extend(batch_embeddings)
         return embeddings
     except Exception as e:
-        logger.error(f"Error generating embeddings: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error generating embeddings: {str(e)}")
+        logger.error(f"Error generating OpenAI embeddings: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating OpenAI embeddings: {str(e)}")
+
+# Function to generate embeddings using Sentence Transformers
+def generate_sentence_transformer_embeddings(texts, model):
+    """Generate embeddings for a list of texts using Sentence Transformers"""
+    try:
+        logger.info(f"Generating Sentence Transformer embeddings for {len(texts)} texts")
+        embeddings = model.encode(texts, show_progress_bar=True)
+        # Convert to list of lists for consistency with OpenAI format
+        embeddings = embeddings.tolist()
+        return embeddings
+    except Exception as e:
+        logger.error(f"Error generating Sentence Transformer embeddings: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating Sentence Transformer embeddings: {str(e)}")
+
+# Function to generate embeddings based on selected method
+def generate_embeddings(texts, embedding_method, api_key=None, model_name="all-MiniLM-L6-v2"):
+    """Generate embeddings using the selected method"""
+    if embedding_method.lower() == "openai":
+        if not api_key:
+            raise HTTPException(status_code=400, detail="OpenAI API key is required for OpenAI embeddings")
+        openai_client = get_openai_client(api_key)
+        return generate_openai_embeddings(texts, openai_client)
+    elif embedding_method.lower() == "sentence-transformers":
+        model = get_sentence_transformer(model_name)
+        return generate_sentence_transformer_embeddings(texts, model)
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported embedding method: {embedding_method}")
 
 # Function to perform clustering
 def perform_clustering(embeddings, algorithm="kmeans", n_clusters=None, eps=None, min_samples=None):
@@ -123,19 +162,29 @@ def process_clustering_task(
     keywords_file_path,
     urls_file_path,
     output_file_path,
+    embedding_method,
     api_key,
+    st_model_name,
     clustering_algorithm,
     n_clusters,
     eps,
     min_samples
 ):
     try:
-        # Initialize OpenAI client
-        openai_client = get_openai_client(api_key)
+        # Read input files with auto-detection of separator (comma or semicolon)
+        try:
+            # Try with comma first
+            keywords_df = pd.read_csv(keywords_file_path)
+        except:
+            # If that fails, try with semicolon
+            keywords_df = pd.read_csv(keywords_file_path, sep=';')
         
-        # Read input files
-        keywords_df = pd.read_csv(keywords_file_path)
-        urls_df = pd.read_csv(urls_file_path)
+        try:
+            # Try with comma first
+            urls_df = pd.read_csv(urls_file_path)
+        except:
+            # If that fails, try with semicolon
+            urls_df = pd.read_csv(urls_file_path, sep=';')
         
         # Validate input data
         if len(keywords_df.columns) < 1:
@@ -149,9 +198,21 @@ def process_clustering_task(
         urls = urls_df.iloc[:, 0].tolist()
         url_contents = urls_df.iloc[:, 1].tolist()
         
-        # Generate embeddings
-        keyword_embeddings = generate_embeddings(keywords, openai_client)
-        url_content_embeddings = generate_embeddings(url_contents, openai_client)
+        # Generate embeddings based on selected method
+        logger.info(f"Using embedding method: {embedding_method}")
+        keyword_embeddings = generate_embeddings(
+            keywords, 
+            embedding_method, 
+            api_key, 
+            st_model_name
+        )
+        
+        url_content_embeddings = generate_embeddings(
+            url_contents, 
+            embedding_method, 
+            api_key, 
+            st_model_name
+        )
         
         # Perform clustering
         clusters = perform_clustering(
@@ -200,12 +261,18 @@ async def cluster_keywords(
     background_tasks: BackgroundTasks,
     keywords_file: UploadFile = File(..., description="CSV file with keywords"),
     urls_file: UploadFile = File(..., description="CSV file with URLs and their content"),
-    api_key: str = Form(..., description="OpenAI API key"),
+    embedding_method: str = Form("openai", description="Embedding method: 'openai' or 'sentence-transformers'"),
+    api_key: Optional[str] = Form(None, description="OpenAI API key (required for OpenAI embeddings)"),
+    st_model_name: str = Form("all-MiniLM-L6-v2", description="Sentence Transformers model name"),
     clustering_algorithm: str = Form("kmeans", description="Clustering algorithm: 'kmeans' or 'dbscan'"),
     n_clusters: Optional[int] = Form(None, description="Number of clusters (for KMeans)"),
     eps: Optional[float] = Form(None, description="Epsilon parameter (for DBSCAN)"),
     min_samples: Optional[int] = Form(None, description="Min samples parameter (for DBSCAN)")
 ):
+    # Validate embedding method
+    if embedding_method.lower() == "openai" and not api_key:
+        raise HTTPException(status_code=400, detail="OpenAI API key is required when using OpenAI embeddings")
+    
     # Create temporary directory for file processing
     temp_dir = tempfile.mkdtemp()
     
@@ -231,7 +298,9 @@ async def cluster_keywords(
             keywords_path,
             urls_path,
             output_path,
+            embedding_method,
             api_key,
+            st_model_name,
             clustering_algorithm,
             n_clusters,
             eps,

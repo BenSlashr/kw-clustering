@@ -62,6 +62,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    // Handle embedding method change
+    const embeddingMethodSelect = document.getElementById('embedding-method');
+    const openaiParams = document.getElementById('openai-params');
+    const stParams = document.getElementById('st-params');
+
+    embeddingMethodSelect.addEventListener('change', function() {
+        if (this.value === 'openai') {
+            openaiParams.classList.remove('hidden');
+            stParams.classList.add('hidden');
+        } else if (this.value === 'sentence-transformers') {
+            openaiParams.classList.add('hidden');
+            stParams.classList.remove('hidden');
+        }
+    });
+
     // Tab navigation
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -80,34 +95,69 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Validate form
-        if (!validateForm()) {
+        // Validate inputs
+        const keywordsFile = document.getElementById('keywords-file').files[0];
+        const urlsFile = document.getElementById('urls-file').files[0];
+        const embeddingMethod = document.getElementById('embedding-method').value;
+        const apiKey = document.getElementById('api-key').value;
+        const stModel = document.getElementById('st-model').value;
+        const algorithm = document.getElementById('algorithm').value;
+        const nClusters = document.getElementById('n-clusters').value;
+        const eps = document.getElementById('eps').value;
+        const minSamples = document.getElementById('min-samples').value;
+        
+        // Validate required fields
+        if (!keywordsFile) {
+            showAlert('Veuillez sélectionner un fichier de mots-clés', 'danger');
             return;
         }
         
-        // Save API key to local storage if user agrees
-        if (document.getElementById('save-api-key').checked) {
-            localStorage.setItem(API_KEY_STORAGE, apiKeyInput.value);
+        if (!urlsFile) {
+            showAlert('Veuillez sélectionner un fichier d\'URLs', 'danger');
+            return;
         }
         
-        // Show loading indicator
+        if (embeddingMethod === 'openai' && !apiKey) {
+            showAlert('Veuillez fournir une clé API OpenAI', 'danger');
+            return;
+        }
+        
+        // Save API key to local storage if checkbox is checked
+        const saveApiKey = document.getElementById('save-api-key').checked;
+        if (saveApiKey && apiKey) {
+            localStorage.setItem('openai_api_key', apiKey);
+        }
+        
+        // Show loading state
         loadingIndicator.classList.remove('hidden');
         resultSection.classList.add('hidden');
         clearAlert();
+        downloadBtn.classList.add('hidden');
         
-        // Create form data
+        // Prepare form data
         const formData = new FormData();
-        formData.append('keywords_file', keywordsFileInput.files[0]);
-        formData.append('urls_file', urlsFileInput.files[0]);
-        formData.append('api_key', apiKeyInput.value);
-        formData.append('clustering_algorithm', algorithmSelect.value);
+        formData.append('keywords_file', keywordsFile);
+        formData.append('urls_file', urlsFile);
+        formData.append('embedding_method', embeddingMethod);
         
-        // Add algorithm-specific parameters
-        if (algorithmSelect.value === 'kmeans' && nClustersInput.value) {
-            formData.append('n_clusters', nClustersInput.value);
-        } else if (algorithmSelect.value === 'dbscan') {
-            if (epsInput.value) formData.append('eps', epsInput.value);
-            if (minSamplesInput.value) formData.append('min_samples', minSamplesInput.value);
+        if (embeddingMethod === 'openai') {
+            formData.append('api_key', apiKey);
+        } else if (embeddingMethod === 'sentence-transformers') {
+            formData.append('st_model_name', stModel);
+        }
+        
+        formData.append('clustering_algorithm', algorithm);
+        
+        if (nClusters) {
+            formData.append('n_clusters', nClusters);
+        }
+        
+        if (eps) {
+            formData.append('eps', eps);
+        }
+        
+        if (minSamples) {
+            formData.append('min_samples', minSamples);
         }
         
         try {
@@ -128,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const url = window.URL.createObjectURL(blob);
             downloadBtn.href = url;
             downloadBtn.download = 'clustered_keywords.csv';
+            downloadBtn.classList.remove('hidden');
             
             // Read and display preview of results
             const csvText = await blob.text();

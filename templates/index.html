@@ -52,12 +52,30 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="embedding-method">Méthode d'embedding</label>
+                        <select id="embedding-method">
+                            <option value="openai">OpenAI</option>
+                            <option value="sentence-transformers">Sentence Transformers (local)</option>
+                        </select>
+                    </div>
+
+                    <div id="openai-params" class="form-group">
                         <label for="api-key">Clé API OpenAI</label>
                         <input type="password" id="api-key" placeholder="sk-...">
                         <div style="margin-top: 0.5rem;">
                             <input type="checkbox" id="save-api-key">
                             <label for="save-api-key" style="display: inline;">Enregistrer la clé API localement</label>
                         </div>
+                    </div>
+
+                    <div id="st-params" class="form-group hidden">
+                        <label for="st-model">Modèle Sentence Transformers</label>
+                        <select id="st-model">
+                            <option value="all-MiniLM-L6-v2">all-MiniLM-L6-v2 (rapide, léger)</option>
+                            <option value="all-mpnet-base-v2">all-mpnet-base-v2 (plus précis)</option>
+                            <option value="paraphrase-multilingual-MiniLM-L12-v2">paraphrase-multilingual-MiniLM-L12-v2 (multilingue)</option>
+                        </select>
+                        <small>Le modèle sera téléchargé automatiquement lors de la première utilisation</small>
                     </div>
 
                     <div class="form-group">
@@ -133,12 +151,21 @@
 référencement naturel
 SEO
 optimisation moteur de recherche</pre>
+                <p>Les séparateurs virgule (,) et point-virgule (;) sont tous deux acceptés.</p>
 
                 <p><strong>Fichier CSV des URLs :</strong></p>
                 <p>Le fichier doit contenir deux colonnes : URL et contenu. Exemple :</p>
                 <pre>url,contenu
 https://example.com/seo,Contenu sur le référencement naturel et l'optimisation pour les moteurs de recherche
 https://example.com/social,Contenu sur les réseaux sociaux et le marketing digital</pre>
+                <p>Ou avec un séparateur point-virgule :</p>
+                <pre>url;contenu
+https://example.com/seo;Contenu sur le référencement naturel et l'optimisation pour les moteurs de recherche
+https://example.com/social;Contenu sur les réseaux sociaux et le marketing digital</pre>
+
+                <h3>Méthodes d'Embedding</h3>
+                <p><strong>OpenAI :</strong> Utilise l'API OpenAI pour générer des embeddings de haute qualité. Nécessite une clé API.</p>
+                <p><strong>Sentence Transformers :</strong> Génère des embeddings localement sans nécessiter de clé API. Plusieurs modèles sont disponibles, avec différents compromis entre vitesse et précision.</p>
 
                 <h3>Algorithmes de clustering</h3>
                 <p><strong>KMeans :</strong> Divise les mots-clés en un nombre spécifique de clusters. Si vous ne spécifiez pas le nombre de clusters, l'algorithme tentera de déterminer le nombre optimal.</p>
